@@ -77,4 +77,20 @@ flowchart LR
 
 ## Getting started
 
-Setup instructions will be added once the first packages are in place.
+Prerequisites: Node.js 20 (see `.nvmrc`), pnpm 9 and Docker with Compose.
+
+```bash
+cp .env.example .env
+pnpm install
+pnpm deps:up      # PostgreSQL 16 and Redis 7 on 127.0.0.1
+pnpm typecheck
+pnpm test
+pnpm dev          # web on :3000, API on :4000 (GET /health)
+```
+
+| Path | Purpose |
+|---|---|
+| `apps/web` | Next.js UI |
+| `apps/api` | Fastify API |
+| `apps/worker` | Background normalization worker (BullMQ) |
+| `packages/` | Shared packages, such as event contracts |
