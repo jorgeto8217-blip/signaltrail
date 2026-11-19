@@ -2,7 +2,7 @@
 
 **Evidence-backed incident investigation.** SignalTrail combines pull requests, CI checks and deployments into one incident timeline and links every finding to its evidence. It keeps observed facts, deterministic correlations and hypotheses clearly separate.
 
-> **Status:** early development, following a 12-week roadmap (see below). The core demo replays a synthetic outage and needs no external credentials.
+> **Status:** early development, following a 6-week roadmap (see below). The core demo replays a synthetic outage and needs no external credentials.
 
 ## The problem
 
@@ -66,14 +66,14 @@ flowchart LR
 
 ## Roadmap
 
-| Weeks | Focus |
-|---|---|
-| 1–2 | TypeScript workspace, CI and event fixtures; workspace, membership and event storage |
-| 3–4 | Signed webhooks, deduplication and normalization; incident APIs and timeline |
-| 5–6 | Commit-SHA and time-window rules; mock investigator with citation checks |
-| 7–8 | Review decisions and audit history; search, evidence comparison and accessibility |
-| 9–10 | Outbox, retries and job recovery; tracing, metrics, benchmarks and isolation tests |
-| 11–12 | Containers, runbooks, end-to-end tests and demo |
+| Week | Focus | Status |
+|---|---|---|
+| Week 1 | **W01-01 + CI** — Bootstrap TypeScript workspace with Compose stack, add synthetic event fixtures and contract test | Planned |
+| Week 2 | **Storage & webhooks** — Add workspaces, memberships and repositories, store events, verify webhook signatures, deduplicate deliveries, normalize events in a worker | Planned |
+| Week 3 | **Incidents & rules** — Add incident API, paginate incident timelines, add evidence view, match deploys by exact SHA, add time-window rules with provenance | Planned |
+| Week 4 | **Investigator & review** — Add mock investigator with bounded evidence, validate citations, add review decisions and permissions, record review history | Planned |
+| Week 5 | **Search & reliability** — Add incident search, add outbox with bounded retries, recover failed jobs | Planned |
+| Week 6 | **Release** — Add traces and ingest metrics, add benchmarks and tenant-isolation tests, package containers and write runbooks, add end-to-end tests, demo assets and release notes | Planned |
 
 ## Getting started
 
