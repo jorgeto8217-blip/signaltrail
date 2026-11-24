@@ -12,7 +12,8 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "deps:up": "docker compose up -d --wait",
-    "deps:down": "docker compose down"
+    "deps:down": "docker compose down",
+    "fixtures:validate": "pnpm --filter @signaltrail/contracts fixtures:validate"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

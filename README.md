@@ -85,6 +85,7 @@ pnpm install
 pnpm deps:up      # PostgreSQL 16 and Redis 7 on 127.0.0.1
 pnpm typecheck
 pnpm test
+pnpm fixtures:validate   # check every synthetic event fixture
 pnpm dev          # web on :3000, API on :4000 (GET /health)
 ```
 
@@ -93,4 +94,4 @@ pnpm dev          # web on :3000, API on :4000 (GET /health)
 | `apps/web` | Next.js UI |
 | `apps/api` | Fastify API |
 | `apps/worker` | Background normalization worker (BullMQ) |
-| `packages/` | Shared packages, such as event contracts |
+| `packages/contracts` | Normalized event contract (Zod), stable timeline ordering and the synthetic `checkout-outage` fixture |

@@ -1,0 +1,103 @@
+{
+  "name": "checkout-outage",
+  "description": "Synthetic outage: a payment-retry change merges, its integration check fails on main, the same commit is deployed to production, and checkout errors spike minutes later. An unrelated docs change deploys in the same window.",
+  "workspaceId": "ws_demo",
+  "events": [
+    {
+      "id": "evt_pr_412_merged",
+      "workspaceId": "ws_demo",
+      "source": "replay",
+      "sourceId": "pr-412",
+      "kind": "pull_request.merged",
+      "occurredAt": "2026-03-10T14:02:11Z",
+      "repository": { "owner": "acme-demo", "name": "checkout-service" },
+      "commitSha": "3f9c2a7e1b4d8c06a5e2f7b9d1c3e4a6b8f0d2c1",
+      "data": { "number": 412, "title": "Retry card authorization on gateway timeout", "author": "demo-dev-ana", "baseBranch": "main" },
+      "provenance": { "deliveryId": "replay-checkout-outage-001", "receivedAt": "2026-03-10T14:02:12Z", "fixture": "checkout-outage" }
+    },
+    {
+      "id": "evt_pr_57_merged",
+      "workspaceId": "ws_demo",
+      "source": "replay",
+      "sourceId": "pr-57",
+      "kind": "pull_request.merged",
+      "occurredAt": "2026-03-10T14:05:40Z",
+      "repository": { "owner": "acme-demo", "name": "storefront-docs" },
+      "commitSha": "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
+      "data": { "number": 57, "title": "Fix typo in returns policy page", "author": "demo-dev-luis", "baseBranch": "main" },
+      "provenance": { "deliveryId": "replay-checkout-outage-002", "receivedAt": "2026-03-10T14:05:41Z", "fixture": "checkout-outage" }
+    },
+    {
+      "id": "evt_check_9001_unit",
+      "workspaceId": "ws_demo",
+      "source": "replay",
+      "sourceId": "check-run-9001",
+      "kind": "check_run.completed",
+      "occurredAt": "2026-03-10T14:09:03Z",
+      "repository": { "owner": "acme-demo", "name": "checkout-service" },
+      "commitSha": "3f9c2a7e1b4d8c06a5e2f7b9d1c3e4a6b8f0d2c1",
+      "data": { "name": "unit-tests", "conclusion": "success" },
+      "provenance": { "deliveryId": "replay-checkout-outage-003", "receivedAt": "2026-03-10T14:09:04Z", "fixture": "checkout-outage" }
+    },
+    {
+      "id": "evt_check_9002_integration",
+      "workspaceId": "ws_demo",
+      "source": "replay",
+      "sourceId": "check-run-9002",
+      "kind": "check_run.completed",
+      "occurredAt": "2026-03-10T14:11:27Z",
+      "repository": { "owner": "acme-demo", "name": "checkout-service" },
+      "commitSha": "3f9c2a7e1b4d8c06a5e2f7b9d1c3e4a6b8f0d2c1",
+      "data": { "name": "payment-gateway-integration", "conclusion": "failure" },
+      "provenance": { "deliveryId": "replay-checkout-outage-004", "receivedAt": "2026-03-10T14:11:28Z", "fixture": "checkout-outage" }
+    },
+    {
+      "id": "evt_deploy_7_docs_success",
+      "workspaceId": "ws_demo",
+      "source": "replay",
+      "sourceId": "deployment-7-status-success",
+      "kind": "deployment.status",
+      "occurredAt": "2026-03-10T14:14:00Z",
+      "repository": { "owner": "acme-demo", "name": "storefront-docs" },
+      "commitSha": "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
+      "data": { "deploymentId": "deployment-7", "environment": "production", "state": "success" },
+      "provenance": { "deliveryId": "replay-checkout-outage-005", "receivedAt": "2026-03-10T14:14:01Z", "fixture": "checkout-outage" }
+    },
+    {
+      "id": "evt_deploy_88_in_progress",
+      "workspaceId": "ws_demo",
+      "source": "replay",
+      "sourceId": "deployment-88-status-in_progress",
+      "kind": "deployment.status",
+      "occurredAt": "2026-03-10T14:15:30Z",
+      "repository": { "owner": "acme-demo", "name": "checkout-service" },
+      "commitSha": "3f9c2a7e1b4d8c06a5e2f7b9d1c3e4a6b8f0d2c1",
+      "data": { "deploymentId": "deployment-88", "environment": "production", "state": "in_progress" },
+      "provenance": { "deliveryId": "replay-checkout-outage-006", "receivedAt": "2026-03-10T14:15:31Z", "fixture": "checkout-outage" }
+    },
+    {
+      "id": "evt_deploy_88_success",
+      "workspaceId": "ws_demo",
+      "source": "replay",
+      "sourceId": "deployment-88-status-success",
+      "kind": "deployment.status",
+      "occurredAt": "2026-03-10T14:18:45Z",
+      "repository": { "owner": "acme-demo", "name": "checkout-service" },
+      "commitSha": "3f9c2a7e1b4d8c06a5e2f7b9d1c3e4a6b8f0d2c1",
+      "data": { "deploymentId": "deployment-88", "environment": "production", "state": "success" },
+      "provenance": { "deliveryId": "replay-checkout-outage-007", "receivedAt": "2026-03-10T14:18:46Z", "fixture": "checkout-outage" }
+    },
+    {
+      "id": "evt_alert_checkout_5xx",
+      "workspaceId": "ws_demo",
+      "source": "replay",
+      "sourceId": "alert-checkout-5xx-1",
+      "kind": "alert.triggered",
+      "occurredAt": "2026-03-10T14:23:10Z",
+      "repository": { "owner": "acme-demo", "name": "checkout-service" },
+      "commitSha": null,
+      "data": { "service": "checkout-api", "summary": "Checkout 5xx rate above 5% for 3 minutes", "severity": "critical" },
+      "provenance": { "deliveryId": "replay-checkout-outage-008", "receivedAt": "2026-03-10T14:23:11Z", "fixture": "checkout-outage" }
+    }
+  ]
+}
