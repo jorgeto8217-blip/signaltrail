@@ -68,7 +68,7 @@ flowchart LR
 
 | Week | Focus | Status |
 |---|---|---|
-| Week 1 | **W01-01 + CI** — Bootstrap TypeScript workspace with Compose stack, add synthetic event fixtures and contract test | Planned |
+| Week 1 | **W01-01 + CI** — Bootstrap TypeScript workspace with Compose stack, add synthetic event fixtures and contract test | ✅ Done |
 | Week 2 | **Storage & webhooks** — Add workspaces, memberships and repositories, store events, verify webhook signatures, deduplicate deliveries, normalize events in a worker | Planned |
 | Week 3 | **Incidents & rules** — Add incident API, paginate incident timelines, add evidence view, match deploys by exact SHA, add time-window rules with provenance | Planned |
 | Week 4 | **Investigator & review** — Add mock investigator with bounded evidence, validate citations, add review decisions and permissions, record review history | Planned |
@@ -77,4 +77,23 @@ flowchart LR
 
 ## Getting started
 
-Setup instructions will be added once the first packages are in place.
+Prerequisites: Node.js 20 (see `.nvmrc`), pnpm 9 and Docker with Compose.
+
+```bash
+cp .env.example .env
+pnpm install
+pnpm deps:up      # PostgreSQL 16 and Redis 7 on 127.0.0.1
+pnpm typecheck
+pnpm test
+pnpm fixtures:validate   # check every synthetic event fixture
+pnpm dev          # web on :3000, API on :4000 (GET /health)
+```
+
+CI (`.github/workflows/ci.yml`) runs the same steps on every push to `main` and every pull request: a frozen-lockfile install, typecheck, tests, fixture validation and build, plus a job that starts the Compose stack and checks PostgreSQL and Redis respond.
+
+| Path | Purpose |
+|---|---|
+| `apps/web` | Next.js UI |
+| `apps/api` | Fastify API |
+| `apps/worker` | Background normalization worker (BullMQ) |
+| `packages/contracts` | Normalized event contract (Zod), stable timeline ordering and the synthetic `checkout-outage` fixture |
