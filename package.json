@@ -13,6 +13,8 @@
     "test": "pnpm -r test",
     "deps:up": "docker compose up -d --wait",
     "deps:down": "docker compose down",
+    "db:deploy": "pnpm --filter @signaltrail/api db:deploy",
+    "db:seed": "pnpm --filter @signaltrail/api db:seed",
     "fixtures:validate": "pnpm --filter @signaltrail/contracts fixtures:validate"
   },
   "devDependencies": {

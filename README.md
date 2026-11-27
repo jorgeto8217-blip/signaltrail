@@ -83,11 +83,23 @@ Prerequisites: Node.js 20 (see `.nvmrc`), pnpm 9 and Docker with Compose.
 cp .env.example .env
 pnpm install
 pnpm deps:up      # PostgreSQL 16 and Redis 7 on 127.0.0.1
+set -a; . ./.env; set +a   # export DATABASE_URL for Prisma
+pnpm db:deploy    # apply database migrations
+pnpm db:seed      # two synthetic workspaces; prints an API token per demo user
 pnpm typecheck
 pnpm test
 pnpm fixtures:validate   # check every synthetic event fixture
 pnpm dev          # web on :3000, API on :4000 (GET /health)
 ```
+
+The API authenticates with `Authorization: Bearer <token>`. Workspace roles are `viewer` (read), `maintainer` (also connect repositories) and `owner` (also manage members); a workspace always keeps at least one owner. Requests for a workspace you are not a member of get the same 404 as an unknown workspace.
+
+| Endpoint | Role |
+|---|---|
+| `GET/POST /v1/workspaces` | any signed-in user (the creator becomes owner) |
+| `GET /v1/workspaces/:id`, `GET …/members`, `GET …/repositories[/:repoId]` | viewer |
+| `POST …/repositories`, `DELETE …/repositories/:repoId` | maintainer |
+| `POST …/members`, `PATCH/DELETE …/members/:userId` | owner |
 
 CI (`.github/workflows/ci.yml`) runs the same steps on every push to `main` and every pull request: a frozen-lockfile install, typecheck, tests, fixture validation and build, plus a job that starts the Compose stack and checks PostgreSQL and Redis respond.
 

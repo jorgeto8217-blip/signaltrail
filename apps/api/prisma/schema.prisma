@@ -1,0 +1,89 @@
+// SignalTrail relational schema. Every tenant-owned row carries workspace_id,
+// and child rows reference their workspace through composite keys so a record
+// can never point at another workspace's data.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// viewer < maintainer < owner; each role includes the ones before it.
+enum WorkspaceRole {
+  viewer
+  maintainer
+  owner
+
+  @@map("workspace_role")
+}
+
+model User {
+  id          String       @id
+  email       String       @unique
+  displayName String       @map("display_name")
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  memberships Membership[]
+  apiTokens   ApiToken[]
+  connectedRepositories RepositoryConnection[]
+
+  @@map("users")
+}
+
+/// Only the SHA-256 of a token is stored; the plain token is shown once.
+model ApiToken {
+  id         String    @id
+  userId     String    @map("user_id")
+  tokenHash  String    @unique @map("token_hash")
+  label      String
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(3)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("api_tokens")
+}
+
+model Workspace {
+  id           String                 @id
+  name         String
+  createdAt    DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  memberships  Membership[]
+  repositories RepositoryConnection[]
+
+  @@map("workspaces")
+}
+
+model Membership {
+  workspaceId String        @map("workspace_id")
+  userId      String        @map("user_id")
+  role        WorkspaceRole
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, userId])
+  @@index([userId])
+  @@map("memberships")
+}
+
+/// A GitHub repository a workspace accepts events from. `fullNameKey` is the
+/// lower-cased "owner/name" (GitHub names are case-insensitive), unique per
+/// workspace.
+model RepositoryConnection {
+  id          String    @id
+  workspaceId String    @map("workspace_id")
+  owner       String
+  name        String
+  fullNameKey String    @map("full_name_key")
+  createdById String    @map("created_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy   User      @relation(fields: [createdById], references: [id])
+
+  @@unique([workspaceId, fullNameKey])
+  @@unique([workspaceId, id])
+  @@map("repository_connections")
+}
