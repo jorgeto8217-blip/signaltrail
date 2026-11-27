@@ -1,13 +1,20 @@
 /**
  * Seeds two synthetic workspaces for local development and prints a fresh API
  * token for each demo user (earlier seed tokens are revoked). Safe to re-run:
- * records are upserted. All names and emails are fictional; `ws_demo` matches
- * the workspace used by the `checkout-outage` fixture.
+ * records are upserted. All names and emails are fictional. The synthetic
+ * `checkout-outage` fixture is stored in `ws_demo`; events already stored are
+ * reported as duplicates.
  */
+import { readFile } from "node:fs/promises";
 import { PrismaClient, type WorkspaceRole } from "@prisma/client";
+import { validateFixture } from "@signaltrail/contracts";
 import { generateToken, hashToken } from "./auth/tokens.js";
+import { canonicalEvent, eventFingerprint } from "./events/canonical.js";
 import { newId } from "./ids.js";
+import { PrismaStore } from "./store/prisma.js";
 import { repositoryKey } from "./store/types.js";
+
+const fixtureUrl = new URL("../../../packages/contracts/fixtures/checkout-outage.json", import.meta.url);
 
 if (process.env.NODE_ENV === "production") {
   console.error("Refusing to seed demo users when NODE_ENV=production.");
@@ -81,7 +88,23 @@ async function main() {
     });
   }
 
+  const fixture = validateFixture(JSON.parse(await readFile(fixtureUrl, "utf8")));
+  if (!fixture.ok) throw new Error(`checkout-outage fixture is invalid: ${JSON.stringify(fixture.issues)}`);
+  const store = new PrismaStore(db);
+  const outcomes = { created: 0, duplicate: 0, conflict: 0 };
+  for (const raw of fixture.fixture.events) {
+    const event = canonicalEvent(raw);
+    const repository = await store.findRepositoryByName(event.workspaceId, event.repository.owner, event.repository.name);
+    if (repository === null) throw new Error(`fixture repository ${event.repository.owner}/${event.repository.name} is not seeded`);
+    const result = await store.insertEvent({ event, repositoryId: repository.id, fingerprint: eventFingerprint(event) });
+    outcomes[result.outcome] += 1;
+  }
+
   console.log("Seeded workspaces:", workspaces.map((w) => w.id).join(", "));
+  console.log(
+    `checkout-outage events in ws_demo: ${outcomes.created} created, ${outcomes.duplicate} already stored, ${outcomes.conflict} conflicting`,
+  );
+  if (outcomes.conflict > 0) process.exitCode = 1;
   console.log("API tokens (local use only; re-running the seed revokes them):");
   for (const { email, token } of issued) console.log(`  ${email.padEnd(32)} ${token}`);
 }

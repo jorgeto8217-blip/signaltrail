@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { requireMembership } from "../auth/guard.js";
-import { repositoryExists, repositoryNotFound } from "../errors.js";
+import { repositoryExists, repositoryHasEvents, repositoryNotFound } from "../errors.js";
 import { looksLikeId, newId } from "../ids.js";
 import type { RepositoryRecord, Store } from "../store/types.js";
 import { parseBody } from "./validation.js";
@@ -66,8 +66,11 @@ export function registerRepositoryRoutes(app: FastifyInstance, store: Store): vo
     async (request, reply) => {
       const { workspaceId, repositoryId } = request.params;
       await requireMembership(request, store, workspaceId, "maintainer");
-      const deleted = looksLikeId("repo", repositoryId) && (await store.deleteRepository(workspaceId, repositoryId));
-      if (!deleted) throw repositoryNotFound();
+      const result = looksLikeId("repo", repositoryId)
+        ? await store.deleteRepository(workspaceId, repositoryId)
+        : "not_found";
+      if (result === "not_found") throw repositoryNotFound();
+      if (result === "has_events") throw repositoryHasEvents();
       reply.code(204);
     },
   );

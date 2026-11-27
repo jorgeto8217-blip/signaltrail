@@ -95,6 +95,12 @@ export const NormalizedEventSchema = z.discriminatedUnion("kind", [
   AlertTriggeredSchema,
 ]);
 
+/** Every event kind, in a fixed order (for filters and database checks). */
+export const EVENT_KINDS = NormalizedEventSchema.options.map((schema) => schema.shape.kind.value) as [
+  EventKind,
+  ...EventKind[],
+];
+
 export type RepositoryRef = z.infer<typeof RepositoryRefSchema>;
 export type Provenance = z.infer<typeof ProvenanceSchema>;
 export type NormalizedEvent = z.infer<typeof NormalizedEventSchema>;

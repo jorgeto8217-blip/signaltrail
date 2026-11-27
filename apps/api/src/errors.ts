@@ -40,3 +40,17 @@ export const repositoryNotFound = () => new HttpError(404, "repository_not_found
 
 export const repositoryExists = () =>
   new HttpError(409, "repository_exists", "This repository is already connected to the workspace.");
+
+export const repositoryHasEvents = () =>
+  new HttpError(
+    409,
+    "repository_has_events",
+    "This repository has stored events; they are evidence and are kept, so it cannot be disconnected.",
+  );
+
+export const eventNotFound = () => new HttpError(404, "event_not_found", "Event not found.");
+
+export const invalidEvents = (issues: unknown) =>
+  new HttpError(422, "invalid_events", "Some events cannot be stored in this workspace.", { issues });
+
+export const invalidCursor = () => new HttpError(400, "invalid_cursor", "The cursor is not valid.");

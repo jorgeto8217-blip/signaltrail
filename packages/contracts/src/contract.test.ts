@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { compareEvents, NormalizedEventSchema, type NormalizedEvent } from "./event.js";
+import { compareEvents, EVENT_KINDS, NormalizedEventSchema, type NormalizedEvent } from "./event.js";
 import { sortTimeline, validateFixture, type EventFixture } from "./fixture.js";
 
 const fixturePath = fileURLToPath(new URL("../fixtures/checkout-outage.json", import.meta.url));
@@ -52,6 +52,10 @@ describe("NormalizedEventSchema", () => {
 
     expect(result.success).toBe(false);
     expect(result.error?.issues[0]?.path).toEqual(["commitSha"]);
+  });
+
+  it("lists every event kind in EVENT_KINDS", () => {
+    expect(EVENT_KINDS).toEqual(["pull_request.merged", "check_run.completed", "deployment.status", "alert.triggered"]);
   });
 
   it("rejects unknown event kinds", async () => {

@@ -1,4 +1,6 @@
+import type { EventKind, NormalizedEvent } from "@signaltrail/contracts";
 import type { WorkspaceRole } from "../auth/roles.js";
+import type { EventCursor } from "../events/canonical.js";
 
 export interface UserRecord {
   id: string;
@@ -33,6 +35,34 @@ export interface RepositoryRecord {
   createdAt: Date;
 }
 
+/** A stored event: the canonical contract event plus where SignalTrail filed it. */
+export interface EventRecord {
+  event: NormalizedEvent;
+  repositoryId: string;
+  recordedAt: Date;
+}
+
+/**
+ * - created:   stored now
+ * - duplicate: the same event (same ID, identical content) was already stored
+ * - conflict:  the ID or the source object is already stored with different content;
+ *              the stored event is kept, `existingIds` names it
+ */
+export type InsertEventResult =
+  | { outcome: "created" | "duplicate" }
+  | { outcome: "conflict"; existingIds: string[] };
+
+export interface EventQuery {
+  /** Return events strictly after this timeline position. */
+  after?: EventCursor;
+  limit: number;
+  kind?: EventKind;
+  commitSha?: string;
+  repositoryId?: string;
+}
+
+export type DeleteRepositoryResult = "deleted" | "not_found" | "has_events";
+
 export type RoleChangeResult = "updated" | "not_member" | "last_owner";
 export type RemoveMemberResult = "removed" | "not_member" | "last_owner";
 
@@ -61,7 +91,15 @@ export interface Store {
   findRepository(workspaceId: string, repositoryId: string): Promise<RepositoryRecord | null>;
   /** Returns null when the workspace already has this owner/name (case-insensitive). */
   createRepository(input: Omit<RepositoryRecord, "createdAt">): Promise<RepositoryRecord | null>;
-  deleteRepository(workspaceId: string, repositoryId: string): Promise<boolean>;
+  findRepositoryByName(workspaceId: string, owner: string, name: string): Promise<RepositoryRecord | null>;
+  /** Refuses to delete a repository that still has events. */
+  deleteRepository(workspaceId: string, repositoryId: string): Promise<DeleteRepositoryResult>;
+
+  /** Stores a canonical event once; `fingerprint` decides duplicate vs conflict. */
+  insertEvent(input: { event: NormalizedEvent; repositoryId: string; fingerprint: string }): Promise<InsertEventResult>;
+  /** Events in stable timeline order (see `compareEvents` in the contract). */
+  listEvents(workspaceId: string, query: EventQuery): Promise<EventRecord[]>;
+  findEvent(workspaceId: string, eventId: string): Promise<EventRecord | null>;
 }
 
 /** GitHub owner and repository names are case-insensitive. */

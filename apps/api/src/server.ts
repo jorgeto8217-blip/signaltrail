@@ -1,5 +1,6 @@
 import Fastify, { type FastifyError } from "fastify";
 import { HttpError } from "./errors.js";
+import { registerEventRoutes } from "./routes/events.js";
 import { registerRepositoryRoutes } from "./routes/repositories.js";
 import { registerWorkspaceRoutes } from "./routes/workspaces.js";
 import type { Store } from "./store/types.js";
@@ -34,6 +35,7 @@ export function buildServer(options: ServerOptions) {
   app.get("/health", async () => ({ status: "ok", service: "signaltrail-api" }));
   registerWorkspaceRoutes(app, options.store);
   registerRepositoryRoutes(app, options.store);
+  registerEventRoutes(app, options.store);
 
   return app;
 }

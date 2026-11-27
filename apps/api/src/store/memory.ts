@@ -1,7 +1,13 @@
+import { compareEvents, type NormalizedEvent } from "@signaltrail/contracts";
 import type { WorkspaceRole } from "../auth/roles.js";
+import type { EventCursor } from "../events/canonical.js";
 import {
   compareMembers,
   repositoryKey,
+  type DeleteRepositoryResult,
+  type EventQuery,
+  type EventRecord,
+  type InsertEventResult,
   type MemberRecord,
   type MembershipRecord,
   type RemoveMemberResult,
@@ -19,6 +25,8 @@ export class MemoryStore implements Store {
   private readonly workspaces = new Map<string, WorkspaceRecord>();
   private readonly memberships = new Map<string, MembershipRecord>(); // "<ws>:<user>"
   private readonly repositories = new Map<string, RepositoryRecord & { key: string }>();
+  private readonly events = new Map<string, EventRecord & { fingerprint: string }>(); // "<ws>:<event id>"
+  private readonly eventSources = new Map<string, string>(); // "<ws>:<source>:<kind>:<source id>" → event ID
   private clock = 0;
 
   /** Test helper: a user plus one API token hash. */
@@ -133,12 +141,71 @@ export class MemoryStore implements Store {
     return strip(repository);
   }
 
-  async deleteRepository(workspaceId: string, repositoryId: string) {
-    const repository = this.repositories.get(repositoryId);
-    if (repository === undefined || repository.workspaceId !== workspaceId) return false;
-    this.repositories.delete(repositoryId);
-    return true;
+  async findRepositoryByName(workspaceId: string, owner: string, name: string) {
+    const key = repositoryKey(owner, name);
+    for (const r of this.repositories.values()) {
+      if (r.workspaceId === workspaceId && r.key === key) return strip(r);
+    }
+    return null;
   }
+
+  async deleteRepository(workspaceId: string, repositoryId: string): Promise<DeleteRepositoryResult> {
+    const repository = this.repositories.get(repositoryId);
+    if (repository === undefined || repository.workspaceId !== workspaceId) return "not_found";
+    for (const e of this.events.values()) {
+      if (e.event.workspaceId === workspaceId && e.repositoryId === repositoryId) return "has_events";
+    }
+    this.repositories.delete(repositoryId);
+    return "deleted";
+  }
+
+  async insertEvent(input: { event: NormalizedEvent; repositoryId: string; fingerprint: string }): Promise<InsertEventResult> {
+    const { event } = input;
+    const idKey = `${event.workspaceId}:${event.id}`;
+    const sourceKey = `${event.workspaceId}:${event.source}:${event.kind}:${event.sourceId}`;
+    const byId = this.events.get(idKey);
+    const bySourceId = this.eventSources.get(sourceKey);
+
+    if (byId === undefined && bySourceId === undefined) {
+      this.events.set(idKey, { ...structuredClone(input), recordedAt: this.now() });
+      this.eventSources.set(sourceKey, event.id);
+      return { outcome: "created" };
+    }
+    if (byId !== undefined && bySourceId === event.id && byId.fingerprint === input.fingerprint) {
+      return { outcome: "duplicate" };
+    }
+    const existingIds = [...new Set([byId?.event.id, bySourceId].filter((id): id is string => id !== undefined))];
+    return { outcome: "conflict", existingIds: existingIds.sort() };
+  }
+
+  async listEvents(workspaceId: string, query: EventQuery): Promise<EventRecord[]> {
+    const { after } = query;
+    return [...this.events.values()]
+      .filter(
+        ({ event, repositoryId }) =>
+          event.workspaceId === workspaceId &&
+          (query.kind === undefined || event.kind === query.kind) &&
+          (query.commitSha === undefined || event.commitSha === query.commitSha) &&
+          (query.repositoryId === undefined || repositoryId === query.repositoryId) &&
+          (after === undefined || compareToCursor(event, after) > 0),
+      )
+      .sort((a, b) => compareEvents(a.event, b.event))
+      .slice(0, query.limit)
+      .map(publicEvent);
+  }
+
+  async findEvent(workspaceId: string, eventId: string) {
+    const record = this.events.get(`${workspaceId}:${eventId}`);
+    return record === undefined ? null : publicEvent(record);
+  }
+}
+
+function publicEvent({ fingerprint: _fingerprint, ...record }: EventRecord & { fingerprint: string }): EventRecord {
+  return structuredClone(record);
+}
+
+function compareToCursor(event: NormalizedEvent, cursor: EventCursor): number {
+  return compareEvents(event, { ...event, ...cursor } as NormalizedEvent);
 }
 
 function strip({ key: _key, ...repository }: RepositoryRecord & { key: string }): RepositoryRecord {

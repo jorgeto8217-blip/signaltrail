@@ -98,8 +98,12 @@ The API authenticates with `Authorization: Bearer <token>`. Workspace roles are 
 |---|---|
 | `GET/POST /v1/workspaces` | any signed-in user (the creator becomes owner) |
 | `GET /v1/workspaces/:id`, `GET …/members`, `GET …/repositories[/:repoId]` | viewer |
+| `GET …/events[/:eventId]` (timeline order; `limit`, `cursor`, `kind`, `commitSha`, `repositoryId`) | viewer |
 | `POST …/repositories`, `DELETE …/repositories/:repoId` | maintainer |
+| `POST …/events` (up to 500 replayed fixture events) | maintainer |
 | `POST …/members`, `PATCH/DELETE …/members/:userId` | owner |
+
+Stored events follow the contract in `packages/contracts` and are append-only. An event is identified by its ID and by its source object (source, kind and source ID), so sending it again returns `duplicate`, and reusing either with different content returns `conflict` and keeps the stored event. Over HTTP only replayed fixture events from connected repositories are accepted; GitHub events will arrive through signed webhooks. A repository that has events cannot be disconnected. `pnpm db:seed` stores the `checkout-outage` fixture in `ws_demo`.
 
 CI (`.github/workflows/ci.yml`) runs the same steps on every push to `main` and every pull request: a frozen-lockfile install, typecheck, tests, fixture validation and build, plus a job that starts the Compose stack and checks PostgreSQL and Redis respond.
 

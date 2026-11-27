@@ -52,6 +52,7 @@ model Workspace {
   createdAt    DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
   memberships  Membership[]
   repositories RepositoryConnection[]
+  events       NormalizedEvent[]
 
   @@map("workspaces")
 }
@@ -82,8 +83,45 @@ model RepositoryConnection {
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy   User      @relation(fields: [createdById], references: [id])
+  events      NormalizedEvent[]
 
   @@unique([workspaceId, fullNameKey])
   @@unique([workspaceId, id])
   @@map("repository_connections")
+}
+
+/// A normalized event (contract: packages/contracts). Rows are append-only (a
+/// trigger rejects UPDATE). The key is per workspace, and
+/// (workspace, source, kind, source_id) identifies the source object, so a
+/// redelivery can never create a second event. A repository connection that
+/// still has events cannot be deleted (NO ACTION), so evidence is not lost.
+/// Timeline order is (occurred_at, source, source_id, id), compared bytewise.
+model NormalizedEvent {
+  workspaceId     String               @map("workspace_id")
+  id              String
+  repositoryId    String               @map("repository_id")
+  source          String
+  sourceId        String               @map("source_id")
+  kind            String
+  occurredAt      DateTime             @map("occurred_at") @db.Timestamptz(3)
+  /// Owner and name exactly as the source reported them.
+  repositoryOwner String               @map("repository_owner")
+  repositoryName  String               @map("repository_name")
+  commitSha       String?              @map("commit_sha")
+  data            Json
+  deliveryId      String               @map("delivery_id")
+  receivedAt      DateTime             @map("received_at") @db.Timestamptz(3)
+  fixture         String?
+  /// SHA-256 of the canonical event; tells a redelivery from a conflicting one.
+  fingerprint     String
+  recordedAt      DateTime             @default(now()) @map("recorded_at") @db.Timestamptz(3)
+  workspace       Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  repository      RepositoryConnection @relation(fields: [workspaceId, repositoryId], references: [workspaceId, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([workspaceId, id])
+  @@unique([workspaceId, source, kind, sourceId])
+  @@index([workspaceId, occurredAt, source, sourceId, id])
+  @@index([workspaceId, commitSha])
+  @@index([workspaceId, repositoryId])
+  @@map("normalized_events")
 }
